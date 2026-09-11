@@ -118,3 +118,28 @@ Vehicle-Rental/
 │   └── admin.png
 │
 └── README.md
+```
+
+---
+
+## 📸 Screenshots
+
+### 🏠 Home
+
+![DriveEase Home](screenshots/home.png)
+
+### 🚗 Vehicle Fleet
+
+![Vehicle Fleet](screenshots/vehicles.png)
+
+### 📅 Booking
+
+![Booking](screenshots/booking.png)
+
+### 📋 My Bookings
+
+![My Bookings](screenshots/my-bookings.png)
+
+### 👑 Admin Dashboard
+
+![Admin Dashboard](screenshots/admin.png)
