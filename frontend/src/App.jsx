@@ -199,11 +199,7 @@ function App() {
       const response = await fetch(url);
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Unable to load vehicles");
-      }
-
-      setVehicles(Array.isArray(data) ? data : []);
+      setVehicles(data);
     } catch {
       setMessage("Unable to load vehicles");
     }
@@ -1060,108 +1056,35 @@ function AuthPage({
   );
 }
 function VehicleSpecifications({ vehicle }) {
-  const specs = getVehicleSpecifications(vehicle);
+  const specs = [
+    { icon: "👥", label: "SEATS", value: vehicle.seats || "-" },
+    { icon: "⚙️", label: "TRANSMISSION", value: vehicle.transmission || "-" },
+    { icon: "⛽", label: "FUEL TYPE", value: vehicle.fuel || "-" },
+    { icon: "🛣️", label: "MILEAGE", value: vehicle.mileage || "-" },
+    { icon: "🚀", label: "ENGINE", value: vehicle.engine || "-" },
+    { icon: "💨", label: "POWER", value: vehicle.power || "-" }
+  ];
 
   return (
     <div className="vehicle-specifications">
       <div className="specifications-heading">
-        <span>VEHICLE DETAILS</span>
+        <span>VEHICLE OVERVIEW</span>
         <h3>Specifications</h3>
       </div>
 
       <div className="specifications-grid">
-        <div className="spec-item">
-          <span className="spec-icon">👥</span>
-          <div>
-            <small>SEATS</small>
-            <strong>{specs.seats}</strong>
+        {specs.map((spec) => (
+          <div className="spec-item" key={spec.label}>
+            <span className="spec-icon">{spec.icon}</span>
+            <div>
+              <small>{spec.label}</small>
+              <strong>{spec.value}</strong>
+            </div>
           </div>
-        </div>
-
-        <div className="spec-item">
-          <span className="spec-icon">⚙️</span>
-          <div>
-            <small>TRANSMISSION</small>
-            <strong>{specs.transmission}</strong>
-          </div>
-        </div>
-
-        <div className="spec-item">
-          <span className="spec-icon">⛽</span>
-          <div>
-            <small>FUEL</small>
-            <strong>{specs.fuel}</strong>
-          </div>
-        </div>
-
-        <div className="spec-item">
-          <span className="spec-icon">🛣️</span>
-          <div>
-            <small>MILEAGE</small>
-            <strong>{specs.mileage}</strong>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
-}
-
-function getVehicleSpecifications(vehicle) {
-  const specifications = {
-    Swift: {
-      seats: 5,
-      transmission: "Manual",
-      fuel: "Petrol",
-      mileage: "22 km/l"
-    },
-    Creta: {
-      seats: 5,
-      transmission: "Automatic",
-      fuel: "Petrol",
-      mileage: "17 km/l"
-    },
-    City: {
-      seats: 5,
-      transmission: "Manual",
-      fuel: "Petrol",
-      mileage: "17.8 km/l"
-    },
-    Fortuner: {
-      seats: 7,
-      transmission: "Automatic",
-      fuel: "Diesel",
-      mileage: "14.4 km/l"
-    },
-    Nexon: {
-      seats: 5,
-      transmission: "Manual",
-      fuel: "Petrol",
-      mileage: "17.4 km/l"
-    },
-    Thar: {
-      seats: 4,
-      transmission: "Manual",
-      fuel: "Petrol",
-      mileage: "15.2 km/l"
-    }
-  };
-
-  if (specifications[vehicle.name]) {
-    return specifications[vehicle.name];
-  }
-
-  const defaults = {
-    Hatchback: { seats: 5, transmission: "Manual", fuel: "Petrol", mileage: "18 km/l" },
-    Sedan: { seats: 5, transmission: "Manual", fuel: "Petrol", mileage: "17 km/l" },
-    SUV: { seats: 5, transmission: "Automatic", fuel: "Petrol", mileage: "15 km/l" }
-  };
-
-  return defaults[vehicle.type] || {
-    seats: 5,
-    transmission: "Manual",
-    fuel: "Petrol",
-    mileage: "15 km/l"
-  };
 }
 
 function VehicleModal({
@@ -1667,6 +1590,12 @@ function AdminPage() {
     brand: "",
     type: "SUV",
     price_per_day: "",
+    seats: 5,
+    transmission: "Manual",
+    fuel: "Petrol",
+    mileage: "18 km/l",
+    engine: "1.2L",
+    power: "90 HP",
     image: "",
     description: "",
     available: true
@@ -1750,6 +1679,12 @@ function AdminPage() {
       brand: "",
       type: "SUV",
       price_per_day: "",
+      seats: 5,
+      transmission: "Manual",
+      fuel: "Petrol",
+      mileage: "18 km/l",
+      engine: "1.2L",
+      power: "90 HP",
       image: "",
       description: "",
       available: true
@@ -1767,6 +1702,12 @@ function AdminPage() {
       type: vehicle.type,
       price_per_day:
         vehicle.price_per_day,
+      seats: vehicle.seats ?? 5,
+      transmission: vehicle.transmission || "Manual",
+      fuel: vehicle.fuel || "Petrol",
+      mileage: vehicle.mileage || "18 km/l",
+      engine: vehicle.engine || "1.2L",
+      power: vehicle.power || "90 HP",
       image: vehicle.image || "",
       description:
         vehicle.description || "",
@@ -2596,6 +2537,95 @@ function AdminPage() {
                 </div>
               </div>
 
+              <div className="admin-specs-section">
+                <div className="admin-specs-heading">
+                  <span>VEHICLE DETAILS</span>
+                  <h3>Specifications</h3>
+                </div>
+
+                <div className="admin-form-grid">
+                  <div className="form-group">
+                    <label>Seats</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={form.seats}
+                      onChange={(e) =>
+                        setForm({ ...form, seats: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Transmission</label>
+                    <select
+                      value={form.transmission}
+                      onChange={(e) =>
+                        setForm({ ...form, transmission: e.target.value })
+                      }
+                    >
+                      <option>Manual</option>
+                      <option>Automatic</option>
+                      <option>AMT</option>
+                      <option>CVT</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Fuel Type</label>
+                    <select
+                      value={form.fuel}
+                      onChange={(e) =>
+                        setForm({ ...form, fuel: e.target.value })
+                      }
+                    >
+                      <option>Petrol</option>
+                      <option>Diesel</option>
+                      <option>Electric</option>
+                      <option>Hybrid</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Mileage</label>
+                    <input
+                      value={form.mileage}
+                      onChange={(e) =>
+                        setForm({ ...form, mileage: e.target.value })
+                      }
+                      placeholder="e.g. 18 km/l"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Engine</label>
+                    <input
+                      value={form.engine}
+                      onChange={(e) =>
+                        setForm({ ...form, engine: e.target.value })
+                      }
+                      placeholder="e.g. 1.5L Turbo"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Power</label>
+                    <input
+                      value={form.power}
+                      onChange={(e) =>
+                        setForm({ ...form, power: e.target.value })
+                      }
+                      placeholder="e.g. 150 HP"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label>
                   Image URL
@@ -2773,7 +2803,7 @@ function ContactPage({ setMessage }) {
             <div className="contact-icon">📧</div>
             <div>
               <small>Email</small>
-              <strong>support@driveease.com</strong>
+              <strong>driveease.vehicle@gmail.com</strong>
             </div>
           </div>
 

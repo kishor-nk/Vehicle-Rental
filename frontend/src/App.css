@@ -4718,19 +4718,383 @@ footer {
     transform: translateY(-1px);
 }
 
-.receipt-button:active {
-    transform: translateY(0);
-}
-
-@media (max-width: 600px) {
-    .receipt-button {
-        width: 100%;
-        padding: 11px 14px;
-    }
-}
-
 .booking-actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+/* Admin Vehicle Specifications */
+.admin-specs-section {
+  margin: 24px 0;
+  padding: 22px;
+  border: 1px solid #eeeeee;
+  border-radius: 14px;
+  background: #fafafa;
+}
+
+.admin-specs-heading {
+  margin-bottom: 18px;
+}
+
+.admin-specs-heading span {
+  display: block;
+  margin-bottom: 6px;
+  color: #ff5a36;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.admin-specs-heading h3 {
+  margin: 0;
+  color: #222;
+  font-size: 18px;
+}
+
+.admin-specs-section .admin-form-grid {
+  margin: 0;
+}
+
+/* Updated Vehicle Specifications */
+.vehicle-specifications {
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  background: #fafafa;
+}
+
+.specifications-heading {
+  margin-bottom: 18px;
+}
+
+.specifications-heading span {
+  display: block;
+  margin-bottom: 6px;
+  color: #ff5a36;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.7px;
+}
+
+.specifications-heading h3 {
+  margin: 0;
+  color: #222;
+  font-size: 21px;
+}
+
+.specifications-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 11px 13px;
+  border: 1px solid #e9e9e9;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.spec-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #fff4f0;
+  font-size: 16px;
+}
+
+.spec-item small {
+  display: block;
+  margin-bottom: 4px;
+  color: #999;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.spec-item strong {
+  display: block;
+  color: #222;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .specifications-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-specifications,
+  .admin-specs-section {
+    padding: 18px;
+  }
+}
+/* =========================
+   CONTACT PAGE
+========================= */
+
+.contact-page {
+    min-height: calc(100vh - 80px);
+    padding: 70px 7%;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255, 220, 220, 0.55), transparent 35%),
+        radial-gradient(circle at 85% 30%, rgba(220, 225, 255, 0.55), transparent 35%),
+        linear-gradient(135deg, #fafbff, #f7f5fb);
+}
+
+.contact-heading {
+    max-width: 800px;
+    margin: 0 auto 55px;
+    text-align: center;
+}
+
+.contact-heading span,
+.contact-info-header > span,
+.contact-form-heading > span {
+    display: inline-block;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #6d4aff;
+}
+
+.contact-heading h1 {
+    margin: 0 0 15px;
+    font-size: 46px;
+    line-height: 1.1;
+    color: #182238;
+}
+
+.contact-heading p {
+    margin: 0;
+    font-size: 17px;
+    color: #667085;
+}
+
+.contact-container {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 35px;
+    align-items: stretch;
+}
+
+.contact-info {
+    padding: 38px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 20px 50px rgba(35, 42, 70, 0.08);
+}
+
+.contact-info-header h2 {
+    margin: 0 0 15px;
+    font-size: 30px;
+    color: #182238;
+}
+
+.contact-info-header p {
+    margin: 0 0 32px;
+    color: #667085;
+    line-height: 1.7;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 17px 0;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.contact-item:last-of-type {
+    border-bottom: none;
+}
+
+.contact-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: #f0ecff;
+    font-size: 21px;
+}
+
+.contact-item small {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8a94a6;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.contact-item strong {
+    display: block;
+    color: #202b42;
+    font-size: 15px;
+}
+
+.contact-support-box {
+    display: flex;
+    gap: 15px;
+    margin-top: 28px;
+    padding: 20px;
+    border-radius: 17px;
+    background: #f4f1ff;
+    border: 1px solid #e6e0ff;
+}
+
+.contact-support-box > span {
+    font-size: 25px;
+}
+
+.contact-support-box strong {
+    display: block;
+    margin-bottom: 7px;
+    color: #202b42;
+}
+
+.contact-support-box p {
+    margin: 0;
+    color: #697386;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.contact-form-card {
+    padding: 38px;
+    border-radius: 24px;
+    background: #ffffff;
+    box-shadow: 0 20px 50px rgba(35, 42, 70, 0.1);
+}
+
+.contact-form-heading {
+    margin-bottom: 28px;
+}
+
+.contact-form-heading h2 {
+    margin: 0;
+    font-size: 30px;
+    color: #182238;
+}
+
+.contact-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.contact-form-card .form-group {
+    margin-bottom: 20px;
+}
+
+.contact-form-card label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #465166;
+}
+
+.contact-form-card input,
+.contact-form-card textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    border: 1px solid #dfe3eb;
+    border-radius: 12px;
+    background: #fafbfc;
+    color: #202b42;
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: 0.2s ease;
+}
+
+.contact-form-card input {
+    height: 50px;
+}
+
+.contact-form-card textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+.contact-form-card input:focus,
+.contact-form-card textarea:focus {
+    border-color: #7657e8;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(118, 87, 232, 0.1);
+}
+
+.contact-form-card input::placeholder,
+.contact-form-card textarea::placeholder {
+    color: #a0a7b4;
+}
+
+.contact-submit {
+    width: 100%;
+    height: 52px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 12px;
+    background: #7657e8;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.contact-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(118, 87, 232, 0.25);
+}
+
+.contact-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Contact page responsive */
+
+@media (max-width: 900px) {
+    .contact-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .contact-page {
+        padding: 45px 20px;
+    }
+
+    .contact-heading h1 {
+        font-size: 36px;
+    }
+
+    .contact-form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .contact-info,
+    .contact-form-card {
+        padding: 25px;
+    }
 }

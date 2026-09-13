@@ -10,46 +10,69 @@ const router = express.Router();
 router.get("/", async (req, res) => {
     try {
         const [vehicles] = await db.query(
-            "SELECT * FROM vehicles ORDER BY id DESC"
+            "SELECT * FROM vehicles ORDER BY id ASC"
         );
 
         res.json(vehicles);
     } catch (error) {
-        console.error(error.message);
+        console.error("Fetch vehicles error:", error.message);
 
         res.status(500).json({
-            message: "Failed to fetch vehicles"
+            message: "Unable to fetch vehicles"
         });
     }
 });
 
 router.get("/search", async (req, res) => {
     try {
-        const { q, type } = req.query;
+        const { search = "", type = "" } = req.query;
 
-        let sql = "SELECT * FROM vehicles WHERE 1=1";
-        const values = [];
+        let query = `
+            SELECT * FROM vehicles
+            WHERE available = 1
+        `;
 
-        if (q) {
-            sql += " AND (name LIKE ? OR brand LIKE ?)";
-            values.push(`%${q}%`, `%${q}%`);
+        const params = [];
+
+        if (search) {
+            query += `
+                AND (
+                    name LIKE ?
+                    OR brand LIKE ?
+                    OR type LIKE ?
+                )
+            `;
+
+            const searchValue = `%${search}%`;
+
+            params.push(
+                searchValue,
+                searchValue,
+                searchValue
+            );
         }
 
         if (type) {
-            sql += " AND type = ?";
-            values.push(type);
+            query += " AND type = ?";
+            params.push(type);
         }
 
-        sql += " ORDER BY id DESC";
+        query += " ORDER BY id ASC";
 
-        const [vehicles] = await db.query(sql, values);
+        const [vehicles] = await db.query(
+            query,
+            params
+        );
 
         res.json(vehicles);
     } catch (error) {
-        console.error(error.message);
+        console.error(
+            "Vehicle search error:",
+            error.message
+        );
 
         res.status(500).json({
-            message: "Search failed"
+            message: "Unable to search vehicles"
         });
     }
 });
@@ -69,10 +92,13 @@ router.get("/:id", async (req, res) => {
 
         res.json(vehicles[0]);
     } catch (error) {
-        console.error(error.message);
+        console.error(
+            "Fetch vehicle error:",
+            error.message
+        );
 
         res.status(500).json({
-            message: "Failed to fetch vehicle"
+            message: "Unable to fetch vehicle"
         });
     }
 });
@@ -89,27 +115,60 @@ router.post(
                 type,
                 price_per_day,
                 image,
-                description
+                description,
+                available,
+                seats,
+                transmission,
+                fuel,
+                mileage,
+                engine,
+                power
             } = req.body;
 
-            if (!name || !brand || !type || !price_per_day) {
+            if (
+                !name ||
+                !brand ||
+                !type ||
+                !price_per_day
+            ) {
                 return res.status(400).json({
                     message:
-                        "Name, brand, type and price are required"
+                        "Required vehicle details are missing"
                 });
             }
 
             const [result] = await db.query(
                 `INSERT INTO vehicles
-                (name, brand, type, price_per_day, image, description)
-                VALUES (?, ?, ?, ?, ?, ?)`,
+                (
+                    name,
+                    brand,
+                    type,
+                    price_per_day,
+                    image,
+                    description,
+                    available,
+                    seats,
+                    transmission,
+                    fuel,
+                    mileage,
+                    engine,
+                    power
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    name.trim(),
-                    brand.trim(),
+                    name,
+                    brand,
                     type,
                     price_per_day,
                     image || null,
-                    description || null
+                    description || null,
+                    available ? 1 : 0,
+                    seats || 5,
+                    transmission || "Manual",
+                    fuel || "Petrol",
+                    mileage || "18 km/l",
+                    engine || "1.2L",
+                    power || "90 HP"
                 ]
             );
 
@@ -118,10 +177,13 @@ router.post(
                 vehicleId: result.insertId
             });
         } catch (error) {
-            console.error(error.message);
+            console.error(
+                "Add vehicle error:",
+                error.message
+            );
 
             res.status(500).json({
-                message: "Failed to add vehicle"
+                message: "Unable to add vehicle"
             });
         }
     }
@@ -140,34 +202,58 @@ router.put(
                 price_per_day,
                 image,
                 description,
-                available
+                available,
+                seats,
+                transmission,
+                fuel,
+                mileage,
+                engine,
+                power
             } = req.body;
 
-            if (!name || !brand || !type || !price_per_day) {
+            if (
+                !name ||
+                !brand ||
+                !type ||
+                !price_per_day
+            ) {
                 return res.status(400).json({
                     message:
-                        "Name, brand, type and price are required"
+                        "Required vehicle details are missing"
                 });
             }
 
             const [result] = await db.query(
                 `UPDATE vehicles
-                SET name = ?,
+                 SET
+                    name = ?,
                     brand = ?,
                     type = ?,
                     price_per_day = ?,
                     image = ?,
                     description = ?,
-                    available = ?
-                WHERE id = ?`,
+                    available = ?,
+                    seats = ?,
+                    transmission = ?,
+                    fuel = ?,
+                    mileage = ?,
+                    engine = ?,
+                    power = ?
+                 WHERE id = ?`,
                 [
-                    name.trim(),
-                    brand.trim(),
+                    name,
+                    brand,
                     type,
                     price_per_day,
                     image || null,
                     description || null,
                     available ? 1 : 0,
+                    seats || 5,
+                    transmission || "Manual",
+                    fuel || "Petrol",
+                    mileage || "18 km/l",
+                    engine || "1.2L",
+                    power || "90 HP",
                     req.params.id
                 ]
             );
@@ -182,10 +268,13 @@ router.put(
                 message: "Vehicle updated successfully"
             });
         } catch (error) {
-            console.error(error.message);
+            console.error(
+                "Update vehicle error:",
+                error.message
+            );
 
             res.status(500).json({
-                message: "Failed to update vehicle"
+                message: "Unable to update vehicle"
             });
         }
     }
@@ -212,10 +301,13 @@ router.delete(
                 message: "Vehicle deleted successfully"
             });
         } catch (error) {
-            console.error(error.message);
+            console.error(
+                "Delete vehicle error:",
+                error.message
+            );
 
             res.status(500).json({
-                message: "Failed to delete vehicle"
+                message: "Unable to delete vehicle"
             });
         }
     }
