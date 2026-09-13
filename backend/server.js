@@ -5,6 +5,8 @@ dotenv.config();
 
 const cors = require("cors");
 const db = require("./db");
+const { verifyEmailConfig } = require("./emailService");
+
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const authRoutes = require("./routes/authRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
@@ -50,6 +52,8 @@ async function startServer() {
         await db.query("SELECT 1");
 
         console.log("MySQL connected successfully!");
+
+        await verifyEmailConfig();
 
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);

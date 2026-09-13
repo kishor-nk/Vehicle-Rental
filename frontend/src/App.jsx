@@ -1,6 +1,153 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
 import "./App.css";
+
+
+function formatReceiptDate(date) {
+  if (!date) return "";
+
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
+function downloadBookingReceipt(booking, user) {
+  const pdf = new jsPDF();
+
+  const orange = [255, 90, 54];
+  const dark = [24, 32, 51];
+  const gray = [110, 110, 110];
+
+  const startDate = new Date(booking.start_date);
+  const endDate = new Date(booking.end_date);
+
+  const days = Math.max(
+    1,
+    Math.ceil(
+      (endDate.getTime() - startDate.getTime()) /
+        (1000 * 60 * 60 * 24)
+    )
+  );
+
+  pdf.setFillColor(...dark);
+  pdf.rect(0, 0, 210, 35, "F");
+
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFontSize(24);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Drive", 20, 18);
+
+  pdf.setTextColor(...orange);
+  pdf.text("Ease", 49, 18);
+
+  pdf.setTextColor(190, 190, 190);
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
+  pdf.text("Vehicle Rental", 20, 27);
+
+  pdf.setTextColor(...dark);
+  pdf.setFontSize(22);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Booking Receipt", 20, 55);
+
+  pdf.setDrawColor(...orange);
+  pdf.setLineWidth(1);
+  pdf.line(20, 62, 190, 62);
+
+  const customerName =
+    booking.user_name || user?.name || "Customer";
+
+  const customerEmail =
+    booking.user_email || user?.email || "";
+
+  const details = [
+    ["Booking ID", `#${booking.id}`],
+    ["Customer", customerName],
+    ["Email", customerEmail],
+    ["Vehicle", booking.vehicle_name || ""],
+    ["Brand", booking.brand || ""],
+    ["Pickup Location", booking.pickup_location || ""],
+    ["Pickup Date", formatReceiptDate(booking.start_date)],
+    ["Return Date", formatReceiptDate(booking.end_date)],
+    ["Status", booking.status || ""]
+  ];
+
+  let y = 78;
+
+  details.forEach(([label, value]) => {
+    pdf.setTextColor(...gray);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text(label, 20, y);
+
+    pdf.setTextColor(...dark);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(String(value), 75, y);
+
+    y += 12;
+  });
+
+  y += 5;
+
+  pdf.setFillColor(248, 248, 249);
+  pdf.roundedRect(20, y, 170, 42, 4, 4, "F");
+
+  pdf.setTextColor(...dark);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("Payment Summary", 28, y + 12);
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
+
+  pdf.text(
+    `Rental Duration: ${days} day${days !== 1 ? "s" : ""}`,
+    28,
+    y + 23
+  );
+
+  pdf.text(
+    `Price per Day: Rs. ${Number(
+      booking.price_per_day
+    ).toLocaleString("en-IN")}`,
+    28,
+    y + 33
+  );
+
+  pdf.setTextColor(...orange);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+
+  pdf.text(
+    `Total: Rs. ${Number(
+      booking.total_price
+    ).toLocaleString("en-IN")}`,
+    125,
+    y + 28
+  );
+
+  pdf.setTextColor(...gray);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+
+  pdf.text(
+    "Thank you for choosing DriveEase.",
+    20,
+    275
+  );
+
+  pdf.text(
+    "Simple, reliable and affordable vehicle rentals.",
+    20,
+    282
+  );
+
+  pdf.save(`DriveEase-Booking-${booking.id}.pdf`);
+}
 
 function App() {
   const [vehicles, setVehicles] = useState([]);
@@ -13,6 +160,7 @@ function App() {
   const [bookings, setBookings] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmationBooking, setConfirmationBooking] = useState(null);
 
   const [authForm, setAuthForm] = useState({
     name: "",
@@ -22,7 +170,8 @@ function App() {
 
   const [bookingForm, setBookingForm] = useState({
     start_date: "",
-    end_date: ""
+    end_date: "",
+    pickup_location: ""
   });
 
   useEffect(() => {
@@ -50,7 +199,11 @@ function App() {
       const response = await fetch(url);
       const data = await response.json();
 
-      setVehicles(data);
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to load vehicles");
+      }
+
+      setVehicles(Array.isArray(data) ? data : []);
     } catch {
       setMessage("Unable to load vehicles");
     }
@@ -241,7 +394,8 @@ function App() {
         body: JSON.stringify({
           vehicle_id: selectedVehicle.id,
           start_date: bookingForm.start_date,
-          end_date: bookingForm.end_date
+          end_date: bookingForm.end_date,
+          pickup_location: bookingForm.pickup_location
         })
       });
 
@@ -252,16 +406,17 @@ function App() {
         return;
       }
 
-      setMessage("Booking confirmed successfully! 🎉");
+      setConfirmationBooking(data.booking);
+      setMessage("");
 
       setBookingForm({
         start_date: "",
-        end_date: ""
+        end_date: "",
+        pickup_location: ""
       });
 
       setSelectedVehicle(null);
-
-      fetchBookings();
+      setView("booking-confirmed");
     } catch {
       setMessage("Booking failed");
     } finally {
@@ -327,6 +482,10 @@ function App() {
 
           <button onClick={() => setView("vehicles")}>
             Vehicles
+          </button>
+
+          <button onClick={() => setView("contact")}>
+            Contact
           </button>
 
           {user && (
@@ -496,6 +655,8 @@ function App() {
             vehicles={vehicles}
             onSelect={setSelectedVehicle}
           />
+
+          <WhyChooseDriveEase />
         </>
       )}
 
@@ -587,10 +748,23 @@ function App() {
         />
       )}
 
+      {view === "contact" && (
+        <ContactPage setMessage={setMessage} />
+      )}
+
       {view === "bookings" && (
         <Bookings
           bookings={bookings}
           onCancel={cancelBooking}
+          user={user}
+        />
+      )}
+
+      {view === "booking-confirmed" && confirmationBooking && (
+        <BookingConfirmation
+          booking={confirmationBooking}
+          onBookings={fetchBookings}
+          onVehicles={() => setView("vehicles")}
         />
       )}
 
@@ -615,21 +789,90 @@ function App() {
       )}
 
       <footer>
-        <div className="footer-logo">
-          🚗 <strong>Drive<span>Ease</span></strong>
+        <div className="footer-container">
+          <div className="footer-brand">
+            <div className="footer-logo">
+              🚗 <strong>Drive<span>Ease</span></strong>
+            </div>
+            <p>
+              Simple, reliable and affordable vehicle rentals for every journey.
+            </p>
+          </div>
+
+          <div className="footer-column">
+            <h3>Quick Links</h3>
+            <button onClick={() => setView("home")}>Home</button>
+            <button onClick={() => setView("vehicles")}>Vehicles</button>
+            <button onClick={fetchBookings}>My Bookings</button>
+            <button onClick={() => setView("contact")}>Contact Us</button>
+          </div>
+
+          <div className="footer-column">
+            <h3>Support</h3>
+            <button onClick={() => setView("contact")}>Booking Help</button>
+            <button onClick={() => setView("contact")}>Contact Support</button>
+            <span>Mon - Sat · 9 AM - 7 PM</span>
+            <span>Hyderabad, Telangana</span>
+          </div>
         </div>
 
-        <p>
-          Simple, reliable and affordable vehicle rentals.
-        </p>
-
-        <p className="copyright">
-          © 2026 DriveEase. All rights reserved.
-        </p>
+        <div className="footer-bottom">
+          <p className="copyright">
+            © 2026 DriveEase. All rights reserved.
+          </p>
+          <span>Built for better journeys. 🚗</span>
+        </div>
       </footer>
     </div>
   );
 }
+function WhyChooseDriveEase() {
+  const benefits = [
+    {
+      icon: "🚗",
+      title: "Verified Vehicles",
+      text: "Choose from reliable vehicles that are ready for your journey."
+    },
+    {
+      icon: "⚡",
+      title: "Easy Booking",
+      text: "Search, select your dates and reserve your ride in just a few clicks."
+    },
+    {
+      icon: "💰",
+      title: "Transparent Pricing",
+      text: "See clear daily rental prices with no confusing hidden charges."
+    },
+    {
+      icon: "🛟",
+      title: "Reliable Support",
+      text: "Get help with your booking whenever you need it."
+    }
+  ];
+
+  return (
+    <section className="why-section">
+      <div className="why-heading">
+        <span>WHY DRIVE WITH US</span>
+        <h2>Why Choose DriveEase?</h2>
+        <p>
+          Everything you need for a simple, comfortable and hassle-free rental experience.
+        </p>
+      </div>
+
+      <div className="why-grid">
+        {benefits.map((benefit) => (
+          <article className="why-card" key={benefit.title}>
+            <div className="why-icon">{benefit.icon}</div>
+            <h3>{benefit.title}</h3>
+            <p>{benefit.text}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function VehicleList({ vehicles, onSelect }) {
   return (
     <section className="vehicles-section">
@@ -816,6 +1059,111 @@ function AuthPage({
     </main>
   );
 }
+function VehicleSpecifications({ vehicle }) {
+  const specs = getVehicleSpecifications(vehicle);
+
+  return (
+    <div className="vehicle-specifications">
+      <div className="specifications-heading">
+        <span>VEHICLE DETAILS</span>
+        <h3>Specifications</h3>
+      </div>
+
+      <div className="specifications-grid">
+        <div className="spec-item">
+          <span className="spec-icon">👥</span>
+          <div>
+            <small>SEATS</small>
+            <strong>{specs.seats}</strong>
+          </div>
+        </div>
+
+        <div className="spec-item">
+          <span className="spec-icon">⚙️</span>
+          <div>
+            <small>TRANSMISSION</small>
+            <strong>{specs.transmission}</strong>
+          </div>
+        </div>
+
+        <div className="spec-item">
+          <span className="spec-icon">⛽</span>
+          <div>
+            <small>FUEL</small>
+            <strong>{specs.fuel}</strong>
+          </div>
+        </div>
+
+        <div className="spec-item">
+          <span className="spec-icon">🛣️</span>
+          <div>
+            <small>MILEAGE</small>
+            <strong>{specs.mileage}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getVehicleSpecifications(vehicle) {
+  const specifications = {
+    Swift: {
+      seats: 5,
+      transmission: "Manual",
+      fuel: "Petrol",
+      mileage: "22 km/l"
+    },
+    Creta: {
+      seats: 5,
+      transmission: "Automatic",
+      fuel: "Petrol",
+      mileage: "17 km/l"
+    },
+    City: {
+      seats: 5,
+      transmission: "Manual",
+      fuel: "Petrol",
+      mileage: "17.8 km/l"
+    },
+    Fortuner: {
+      seats: 7,
+      transmission: "Automatic",
+      fuel: "Diesel",
+      mileage: "14.4 km/l"
+    },
+    Nexon: {
+      seats: 5,
+      transmission: "Manual",
+      fuel: "Petrol",
+      mileage: "17.4 km/l"
+    },
+    Thar: {
+      seats: 4,
+      transmission: "Manual",
+      fuel: "Petrol",
+      mileage: "15.2 km/l"
+    }
+  };
+
+  if (specifications[vehicle.name]) {
+    return specifications[vehicle.name];
+  }
+
+  const defaults = {
+    Hatchback: { seats: 5, transmission: "Manual", fuel: "Petrol", mileage: "18 km/l" },
+    Sedan: { seats: 5, transmission: "Manual", fuel: "Petrol", mileage: "17 km/l" },
+    SUV: { seats: 5, transmission: "Automatic", fuel: "Petrol", mileage: "15 km/l" }
+  };
+
+  return defaults[vehicle.type] || {
+    seats: 5,
+    transmission: "Manual",
+    fuel: "Petrol",
+    mileage: "15 km/l"
+  };
+}
+
 function VehicleModal({
   vehicle,
   form,
@@ -844,8 +1192,7 @@ function VehicleModal({
 
   const pricePerDay = Number(vehicle.price_per_day);
   const subtotal = days * pricePerDay;
-  const serviceFee = days > 0 ? Math.round(subtotal * 0.05) : 0;
-  const total = subtotal + serviceFee;
+  const total = subtotal;
 
   const today = getLocalDateString();
 
@@ -895,6 +1242,8 @@ function VehicleModal({
             {vehicle.description}
           </p>
 
+          <VehicleSpecifications vehicle={vehicle} />
+
           {user ? (
             <form
               onSubmit={onSubmit}
@@ -903,12 +1252,32 @@ function VehicleModal({
               <div className="booking-form-title">
                 <div>
                   <span>BOOK YOUR RIDE</span>
-                  <h3>Select your dates</h3>
+                  <h3>Choose your pickup & dates</h3>
                 </div>
 
                 <div className="booking-icon">
                   📅
                 </div>
+              </div>
+
+              <div className="form-group pickup-location-group">
+                <label>Pickup Location</label>
+                <select
+                  value={form.pickup_location}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      pickup_location: e.target.value
+                    })
+                  }
+                  required
+                >
+                  <option value="">Select pickup location</option>
+                  <option value="Gachibowli">Gachibowli</option>
+                  <option value="Hitech City">Hitech City</option>
+                  <option value="Secunderabad">Secunderabad</option>
+                  <option value="Hyderabad Airport">Hyderabad Airport</option>
+                </select>
               </div>
 
               <div className="date-row">
@@ -973,14 +1342,6 @@ function VehicleModal({
                     </span>
                   </div>
 
-                  <div className="breakdown-row">
-                    <span>Service fee</span>
-
-                    <span>
-                      ₹{serviceFee.toLocaleString()}
-                    </span>
-                  </div>
-
                   <div className="breakdown-total">
                     <span>Total</span>
 
@@ -1032,8 +1393,11 @@ function VehicleModal({
 }
 function Bookings({
   bookings,
-  onCancel
+  onCancel,
+  user
 }) {
+  const [cancelTarget, setCancelTarget] = useState(null);
+
   return (
     <main className="page bookings-page">
       <div className="bookings-heading">
@@ -1154,7 +1518,7 @@ const days = Math.max(
                       </span>
 
                       <span>
-                        💳 Paid
+                        📍 {booking.pickup_location}
                       </span>
                     </div>
 
@@ -1169,6 +1533,15 @@ const days = Math.max(
                       </strong>
                     </div>
 
+                    <button
+                      className="receipt-button"
+                      onClick={() =>
+                        downloadBookingReceipt(booking, user)
+                      }
+                    >
+                      🧾 Download Receipt
+                    </button>
+
                     {[
                       "pending",
                       "confirmed"
@@ -1176,7 +1549,7 @@ const days = Math.max(
                       <button
                         className="cancel-booking-btn"
                         onClick={() =>
-                          onCancel(booking.id)
+                          setCancelTarget(booking)
                         }
                       >
                         Cancel Booking
@@ -1189,6 +1562,73 @@ const days = Math.max(
           })}
         </div>
       )}
+
+      {cancelTarget && (
+        <div className="modal-overlay" onClick={() => setCancelTarget(null)}>
+          <div className="cancel-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cancel-icon">⚠️</div>
+            <h2>Cancel this booking?</h2>
+            <p>
+              Are you sure you want to cancel booking #{cancelTarget.id} for {cancelTarget.vehicle_name}?
+            </p>
+            <div className="cancel-actions">
+              <button className="outline-btn" onClick={() => setCancelTarget(null)}>
+                Keep Booking
+              </button>
+              <button
+                className="cancel-confirm-btn"
+                onClick={() => {
+                  onCancel(cancelTarget.id);
+                  setCancelTarget(null);
+                }}
+              >
+                Yes, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+function BookingConfirmation({ booking, onBookings, onVehicles }) {
+  return (
+    <main className="confirmation-page">
+      <div className="confirmation-card">
+        <div className="confirmation-icon">✓</div>
+        <span className="confirmation-label">BOOKING CONFIRMED</span>
+        <h1>Your ride is reserved! 🎉</h1>
+        <p>Your booking has been successfully created.</p>
+
+        <div className="confirmation-summary">
+          <div className="confirmation-summary-header">
+            <div>
+              <small>BOOKING ID</small>
+              <strong>#{booking.id}</strong>
+            </div>
+            <span className={`status ${booking.status}`}>● {booking.status}</span>
+          </div>
+
+          <div className="confirmation-grid">
+            <div><small>VEHICLE</small><strong>{booking.vehicle_name}</strong></div>
+            <div><small>PICKUP LOCATION</small><strong>📍 {booking.pickup_location}</strong></div>
+            <div><small>PICKUP DATE</small><strong>{formatDate(booking.start_date)}</strong></div>
+            <div><small>RETURN DATE</small><strong>{formatDate(booking.end_date)}</strong></div>
+            <div><small>RENTAL DAYS</small><strong>{booking.days} {booking.days === 1 ? "day" : "days"}</strong></div>
+            <div><small>PRICE / DAY</small><strong>₹{Number(booking.price_per_day).toLocaleString()}</strong></div>
+          </div>
+
+          <div className="confirmation-total">
+            <span>Total amount</span>
+            <strong>₹{Number(booking.total_price).toLocaleString()}</strong>
+          </div>
+        </div>
+
+        <div className="confirmation-actions">
+          <button className="primary-btn" onClick={onBookings}>View My Bookings</button>
+          <button className="outline-btn" onClick={onVehicles}>Browse More Vehicles</button>
+        </div>
+      </div>
     </main>
   );
 }
@@ -1844,6 +2284,10 @@ function AdminPage() {
                   </th>
 
                   <th>
+                    Pickup
+                  </th>
+
+                  <th>
                     Dates
                   </th>
 
@@ -1876,6 +2320,10 @@ function AdminPage() {
                       <td>
                         {booking.brand}{" "}
                         {booking.vehicle_name}
+                      </td>
+
+                      <td>
+                        📍 {booking.pickup_location}
                       </td>
 
                       <td>
@@ -2262,3 +2710,167 @@ function formatDate(date) {
 }
 
 export default App;
+
+function ContactPage({ setMessage }) {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: ""
+  });
+
+  const [sending, setSending] = useState(false);
+
+  function handleChange(e) {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setSending(true);
+
+    setTimeout(() => {
+      setSending(false);
+      setMessage(
+        "Message sent successfully! We'll get back to you soon. 🎉"
+      );
+      setForm({
+        name: "",
+        email: "",
+        subject: "",
+        message: ""
+      });
+    }, 700);
+  }
+
+  return (
+    <main className="contact-page">
+      <div className="contact-heading">
+        <span>GET IN TOUCH</span>
+        <h1>Contact Us</h1>
+        <p>
+          Have a question about your booking or our vehicles?
+          We're here to help.
+        </p>
+      </div>
+
+      <div className="contact-container">
+        <div className="contact-info">
+          <div className="contact-info-header">
+            <span>DRIVE WITH CONFIDENCE</span>
+            <h2>We're here to help.</h2>
+            <p>
+              Whether you need help choosing a vehicle, have a question
+              about your booking, or simply want to know more about
+              DriveEase, feel free to reach out.
+            </p>
+          </div>
+
+          <div className="contact-item">
+            <div className="contact-icon">📧</div>
+            <div>
+              <small>Email</small>
+              <strong>support@driveease.com</strong>
+            </div>
+          </div>
+
+          <div className="contact-item">
+            <div className="contact-icon">📍</div>
+            <div>
+              <small>Location</small>
+              <strong>Hyderabad, Telangana</strong>
+            </div>
+          </div>
+
+          <div className="contact-item">
+            <div className="contact-icon">🕐</div>
+            <div>
+              <small>Support Hours</small>
+              <strong>Mon - Sat · 9:00 AM - 7:00 PM</strong>
+            </div>
+          </div>
+
+          <div className="contact-support-box">
+            <span>🚗</span>
+            <div>
+              <strong>Need help with a booking?</strong>
+              <p>
+                Keep your booking ID ready and our team can help you faster.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="contact-form-card">
+          <div className="contact-form-heading">
+            <span>SEND A MESSAGE</span>
+            <h2>How can we help?</h2>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div className="contact-form-row">
+              <div className="form-group">
+                <label>Your Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Enter your name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Subject</label>
+              <input
+                type="text"
+                name="subject"
+                placeholder="What can we help with?"
+                value={form.subject}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Message</label>
+              <textarea
+                name="message"
+                placeholder="Write your message..."
+                value={form.message}
+                onChange={handleChange}
+                rows="6"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="contact-submit"
+              disabled={sending}
+            >
+              {sending ? "Sending..." : "Send Message →"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
+}
